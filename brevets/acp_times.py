@@ -39,6 +39,12 @@ def open_time(control_dist_km, brevet_dist_km, brevet_start_time):
     except:
         print("Error occured.")
         return
+    """
+    If the control distance is greater than the total brevet distance
+    the opening times should be as if control distance is total brevet distance
+    """
+    if control_dist_km >= brevet_dist_km:
+        control_dist_km = brevet_dist_km
 
     distance = control_dist_km
     time = arrow.get(brevet_start_time)

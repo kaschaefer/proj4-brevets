@@ -188,10 +188,6 @@
       var initial_close_time = document.getElementById("close initial");
       initial_open_time.value = moment(start).format("ddd M/D H:mm");
       initial_close_time.value = moment(start).add(1, 'hours').format("ddd M/D H:mm");
-      
-      // TODO:: Upon change of start date, update stuff
-      // TODO:: Upon change of start time, update stuff
-      // TODO:: Upon change of total brevet distance, update stuff
 
       $('input[name="miles"]').change(
          function() {
