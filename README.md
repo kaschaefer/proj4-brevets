@@ -37,9 +37,13 @@ The rules that the acp_times algorithms follow are those set forth by RUSA. A br
         The close times for final controls are as follows. Times given are relative to the start time of the brevet.
             ```
             200KM : 13H30 (meaning 13HR 30MIN)
+
             300KM : 20H00
+
             400KM : 27H00
+            
             600KM : 40H00
+            
             1000KM : 75H00
             ```
 
