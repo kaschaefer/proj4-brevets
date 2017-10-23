@@ -1,13 +1,30 @@
 """
 Nose tests for acp_times.py
 """
-from acp_times.py import open_time, close_time
+from acp_times import open_time, close_time
 
 import nose
 import logging
+import arrow
+
 logging.basicConfig(format='%(levelname)s:%(message)s',
                     level=logging.WARNING)
 log = logging.getLogger(__name__)
+
+"""
+Helper Function to Allow for 1 minute difference
+to account for rounding errors
+"""
+def nearly(x, y):
+    if (x < y):
+        time_one = y
+        time_two = x
+    else:
+        time_one = x
+        time_two = y
+    diff = arrow.get(time_one) - arrow.get(time_two)
+    minutes = diff.seconds/60
+    return not ( int(minutes) > 1)
 
 """
 Testing Opening Times
@@ -18,56 +35,32 @@ def test_short_control():
     Test a control set to exactly 15km
     Should return exactly one hour later
     """
-    assert open_time(15, 200, 2017-10-18T06:00:00+00:00) == 2017-10-18T07:00:00+00:00
+    assert nearly(close_time(15, 200, "2017-10-18T06:00:00-08:00"), "2017-10-18T07:00:00-08:00")
 
-def test_example1():
+def test_edge_case():
     """
-    From example 1 on the rules page
-    Test that on a 200km brevet with a 175 control
-    opening time is 5H09 after start
+    Test controls at 590km, 600km, and 610km on 1000km
+    brevet open and close at the correct times
     """
-    assert open_time(175, 200, 2017-10-18T06:00:00+00:00) == 2017-10-18T11:09:00+00:00
+    assert nearly(open_time(590, 1000, "2018-01-01T00:00:00+00:00"), "2018-01-01T18:28:00+00:00")
+    assert nearly(open_time(600, 1000, "2018-01-01T00:00:00+00:00"), "2018-01-01T18:48:00+00:00")
+    assert nearly(open_time(610, 1000, "2018-01-01T00:00:00+00:00"), "2018-01-01T19:09:00+00:00")
 
-def test_example2():
-    """
-    From example 2 on the rules page
-    Test that on a 600 km brevet with a 350 control
-    opening time is 10H34 after start
-    """
-    assert open_time(350, 600, 2017-10-18T06:00:00+00:00) == 2017-10-18T16:34:00+00:00
+    assert nearly(close_time(590, 1000, "2018-01-01T00:00:00+00:00"), "2018-01-02T15:20:00+00:00")
+    assert nearly(close_time(600, 1000, "2018-01-01T00:00:00+00:00"), "2018-01-02T16:00:00+00:00")
+    assert nearly(close_time(610, 1000, "2018-01-01T00:00:00+00:00"), "2018-01-02T16:53:00+00:00")
 
-"""
-Testing Closing Times
-"""
+def test_bad_input_string():
+    """
+    Test that the algorithms can properly handle bad time strings
+    """
+    assert not close_time(590, 1000, "") == "2018-01-02T15:20:00+00:00"
+    assert not close_time(200, 200, "abcdefg") == "2018-01-02T16:53:00+00:00"
+    assert not open_time(590, 1000, "") == "2018-01-02T15:20:00+00:00"
+    assert not open_time(200, 200, "abcdefg") == "2018-01-02T16:53:00+00:00"
 
-def test_correct_closing_time():
+def test_bad_input_nums():
     """
-    Test that closing time at start point is calculated correctly
+    Test that the algorithms can handle bad nums
     """
-    assert close_time(0, 600, 2017-10-18T06:00:00+00:00) == 2017-10-18T07:00:00+00:00
-
-def test_example1():
-    """
-    From example 1 on rules page
-    Test that on a 200km brever with a 175 control
-    closing time is 11H40 after start
-    """
-    assert close_time(175, 200, 2017-10-18T06:00:00+00:00) == 2017-10-18T17:40:00+00:00
-
-def test_example2():
-    """
-    From example 2 on rules page
-    Test that on a 600 brevet with any control
-    closing time should be as shown
-    """
-    assert close_time(200, 600, 2017-10-18T06:00:00+00:00) == 2017-10-18T19:20:00+00:00
-    assert close_time(500, 600, 2017-10-18T06:00:00+00:00) == 2017-10-19T15:20:00+00:00
-    assert close_time(600, 600, 2017-10-18T06:00:00+00:00) == 2017-10-19T22:00:00+00:00
-
-def test_example3():
-    """
-    From example 3 on rules page
-    Test that on a 1000km brevet with 890km control
-    closing time is 65H23
-    """
-    assert close_time(890, 1000, 2017-10-18T06:00:00+00:00) == 2017-10-20T23:23:00+00:00
+    assert not close_time(-5, 150, "2018-01-02T16:53:00+00:00") == "2018-01-02T16:53:00+00:00"

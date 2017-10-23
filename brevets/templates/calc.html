@@ -66,7 +66,7 @@
   </div> <!-- columns 1--4  -->
   <div class="col-md-6">
     <label>Begins at</label>
-    <input type=date name="begin_date" id="begin_date" value="2017-01-01" />
+    <input type=date name="begin_date" id="begin_date" value="2018-01-01" />
     <input type=time name="begin_time" id="begin_time" value="00:00"    />
   </div> <!-- columns 5-10 -->
   </div> <!-- row -->
@@ -88,13 +88,32 @@
 	<th>Notes</th>
       </tr>
    {% for row in range(20) %}
+   {% if row == 0 %}
+   <tr class="control initial">
+    <!-- Dist (mi) -->
+      <td><input id="miles initial" name="miles intial" type="text" size="5" value="0" readonly/></td>
+      <!-- Dist (km) -->
+      <td><input id="km initial" name="km initial" type="text" size="5" value="0" readonly/> </td>
+      <!-- Location (optional) -->
+      <td><input id="location initial" name="location initial" type="text" 
+        placeholder="Optional location name"
+	size="20" /> </td>
+      <!-- Open time (read only, set by JavaScript function -->
+      <td><input id="open initial" name="open initial" type="datetime" value="" readonly /></td>
+      <!-- Close time (read only, set by JavaScript function -->
+      <td><input id="close initial" name="close initial" type="datetime" value="" readonly /></td>
+      <!-- Notes (error messages for this row) -->
+      <td class="notes" id="notes"> &nbsp; </td>
+   </tr>
+   {% else %}
     <tr class="control">
       <!-- Dist (mi) -->
       <td><input name="miles" type="number" 
-           min="0" max="900" size="5" /></td>
+           min="0" max="900" size="5" 
+           /></td>
       <!-- Dist (km) -->
       <td><input name="km" type="text"
-	   min="0" max="1100" size="5" /> </td>
+     min="0" max="1100" size="5" /> </td>
       <!-- Location (optional) -->
       <td><input name="location" type="text" 
         placeholder="Optional location name"
@@ -104,8 +123,9 @@
       <!-- Close time (read only, set by JavaScript function -->
       <td><input name="close" type="datetime" value="" readonly /></td>
       <!-- Notes (error messages for this row) -->
-      <td class="notes"> &nbsp; </td>
+      <td class="notes" id="notes"> &nbsp; </td>
     </tr>
+    {% endif %}
     {% endfor %}
   </table>
   </div> <!-- col -->
@@ -116,6 +136,8 @@
 
   var SCRIPT_ROOT = {{ request.script_root|tojson|safe }} ;
   var TIME_CALC_URL = SCRIPT_ROOT + "/_calc_times";
+ 
+  
 
   // Pass calctimes a <td> element containing the data for a control.
   // It extracts the distance and calls the server to get times to
@@ -124,10 +146,27 @@
   // stash them in hidden fields.) 
   function calc_times(control) {
     var km = control.find("input[name='km']").val();
+    var total_distance = $('#brevet_dist_km').find(":selected").val();
+    var notes_field = control.find(".notes");
+    //Check that the input distance is not greater than it should be
+    //Also checks that km is a nonnegative number
+    if (km > total_distance*1.10 || km < 0 || isNaN(km)) {
+        alert("Please enter a valid control distance.");
+        control.find("input[name='km']").val("");
+        control.find("input[name='miles']").val("");
+        return;
+    }
+
+    var start_time = $("input[name='begin_time']").val();
+    var start_date = $("input[name='begin_date']").val();
+    var start = moment(start_date + start_time).toISOString();
+    console.log(start + " should be an ISO string");
+
+
     var open_time_field = control.find("input[name='open']");
     var close_time_field = control.find("input[name='close']");
     
-    $.getJSON(TIME_CALC_URL, { km: km }, 
+    $.getJSON(TIME_CALC_URL, { km: km, start: start, distance: total_distance }, 
       // response handler
       function(data) {
          var times = data.result;
@@ -140,14 +179,26 @@
     }
 
   $(document).ready(function(){
-   // Do the following when the page is finished loading
+      // The following code chunk fills in the start control's open and close times
+      // Based on the default distance of 0 and begin time/date
+      var start_time = $("input[name='begin_time']").val();
+      var start_date = $("input[name='begin_date']").val();
+      var start = moment(start_date + start_time);
+      var initial_open_time = document.getElementById("open initial");
+      var initial_close_time = document.getElementById("close initial");
+      initial_open_time.value = moment(start).format("ddd M/D H:mm");
+      initial_close_time.value = moment(start).add(1, 'hours').format("ddd M/D H:mm");
+      
+      // TODO:: Upon change of start date, update stuff
+      // TODO:: Upon change of start time, update stuff
+      // TODO:: Upon change of total brevet distance, update stuff
 
       $('input[name="miles"]').change(
          function() {
              var miles = parseFloat($(this).val());
-             var km = (1.609344 * miles).toFixed(1) ;
+             var km = (1.609344 * miles).toFixed(1);
              console.log("Converted " + miles + " miles to " + km + " kilometers");
-             var control_entry = $(this).parents(".control")
+             var control_entry = $(this).parents(".control");
              var target = control_entry.find("input[name='km']");
              target.val( km );
              // Then calculate times for this entry
@@ -157,9 +208,10 @@
       $('input[name="km"]').change(
          function() {
              var km = parseFloat($(this).val());
-             var miles = (0.621371 * km).toFixed(1) ;
+             var miles = (0.621371 * km).toFixed(1);
+             var distance = $('#brevet_dist_km').find(":selected").val();
              console.log("Converted " + km + " km to " + miles + " miles");
-             var control_entry = $(this).parents(".control")
+             var control_entry = $(this).parents(".control");
              var target = control_entry.find("input[name='miles']");
              target.val( miles );
              // Then calculate times for this entry
